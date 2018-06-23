@@ -74,7 +74,8 @@ optimizer = optim.SGD(model.parameters(), lr=0.001)
 
 for epoch in range(n_epochs):
     total_loss = 0
-    for batch in tqdm.tqdm(batch_iter(), total=n_batches):
+    t_bar = tqdm.tqdm(batch_iter(), total=n_batches, postfix=dict(loss=0))
+    for batch in t_bar:
         curr_contexts, curr_targets = batch
         context_idxs = torch.tensor(curr_contexts, dtype=torch.long).to(device)
         model.zero_grad()
@@ -85,4 +86,4 @@ for epoch in range(n_epochs):
         optimizer.step()
         step_loss = loss.cpu().item()
         total_loss += step_loss
-    print(epoch, total_loss)
+        t_bar.set_postfix(loss=total_loss)
