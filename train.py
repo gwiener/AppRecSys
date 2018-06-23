@@ -1,5 +1,6 @@
 import tqdm
 import random
+import numpy as np
 import pandas as pd
 import sklearn.feature_extraction.text as sk_text
 
@@ -87,3 +88,6 @@ for epoch in range(n_epochs):
         step_loss = loss.cpu().item()
         total_loss += step_loss
         t_bar.set_postfix(loss=total_loss)
+
+embeddings = model.embeddings.cpu().weight.data.numpy()
+np.save('embed.npy', embeddings)
