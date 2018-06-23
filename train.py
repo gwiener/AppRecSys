@@ -1,4 +1,5 @@
 import tqdm
+import pickle
 import random
 import numpy as np
 import pandas as pd
@@ -22,6 +23,10 @@ tok = cv.build_tokenizer()
 text = df['description']
 cv.fit(text)
 word_to_idx = cv.vocabulary_
+
+with open('word_to_idx.pickle', 'wb') as f:
+    pickle.dump(word_to_idx, f)
+
 samples = [
     [word_to_idx[w.lower()] for w in tok(sentence) if w.lower() in word_to_idx]
     for sentence in text
