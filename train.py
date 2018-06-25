@@ -20,6 +20,14 @@ def batch_iter(samples, batch_size, n_batches):
         yield ctxs, targets
 
 
+def cbow_batch_iter(samples, sample_size, batch_size, n_batches):
+    for b in range(n_batches):
+        batch = [samples[i] for i in range(b, n_batches*batch_size, n_batches)]
+        ctxs = [[x[i] for i in range(sample_size) if i != j] for x in batch for j in range(sample_size)]
+        targets = [x[j] for x in batch for j in range(sample_size)]
+        yield ctxs, targets
+
+
 class NGramLanguageModeler(nn.Module):
     def __init__(self, vocab_size, embedding_dim, context_size, batch_size, hidden_size):
         super(NGramLanguageModeler, self).__init__()
@@ -47,6 +55,7 @@ def main(
     learn_rate=0,
     sample_rate=0,
     optimizer='',
+    cbow=False,
     min_df=0,
     max_df=0,
     idx_file='',
@@ -85,12 +94,17 @@ def main(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
     loss_function = nn.NLLLoss()
-    model = NGramLanguageModeler(vocab_size, embed_size, n_gram_size-1, batch_size, hidden_size)
+    actual_batch_size = batch_size*n_gram_size if cbow else batch_size
+    model = NGramLanguageModeler(vocab_size, embed_size, n_gram_size-1, actual_batch_size, hidden_size)
     model = model.to(device)
     optimizer = optim.SGD(model.parameters(), lr=learn_rate)
     for epoch in range(num_epochs):
         total_loss = 0
-        t_bar = tqdm.tqdm(batch_iter(n_grams, batch_size, n_batches), total=n_batches, postfix=dict(loss=0))
+        batch_gen = (
+            cbow_batch_iter(n_grams, n_gram_size, batch_size, n_batches) if cbow
+            else batch_iter(n_grams, batch_size, n_batches)
+        )
+        t_bar = tqdm.tqdm(batch_gen, total=n_batches, postfix=dict(loss=0))
         for batch in t_bar:
             curr_contexts, curr_targets = batch
             context_idxs = torch.tensor(curr_contexts, dtype=torch.long).to(device)
@@ -119,6 +133,7 @@ if __name__ == '__main__':
     parser.add('-lr', '--learn-rate', type=float)
     parser.add('--sample-rate', type=float)
     parser.add('-o', '--optimizer', type=str)
+    parser.add('--cbow', dest='cbow', action='store_true', default=False)
     parser.add('--min-df', type=float)
     parser.add('--max-df', type=float)
     parser.add('--idx-file', type=str)
