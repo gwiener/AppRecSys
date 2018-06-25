@@ -12,8 +12,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
+def rand_batches(n_batches):
+    res = list(range(n_batches))
+    random.shuffle(res)
+    return res
+
+
 def batch_iter(samples, batch_size, n_batches):
-    for b in range(n_batches):
+    for b in rand_batches(n_batches):
         batch = [samples[i] for i in range(b, n_batches*batch_size, n_batches)]
         ctxs = [x[:-1] for x in batch]
         targets = [x[-1] for x in batch]
@@ -21,7 +27,7 @@ def batch_iter(samples, batch_size, n_batches):
 
 
 def cbow_batch_iter(samples, sample_size, batch_size, n_batches):
-    for b in range(n_batches):
+    for b in rand_batches(n_batches):
         batch = [samples[i] for i in range(b, n_batches*batch_size, n_batches)]
         ctxs = [[x[i] for i in range(sample_size) if i != j] for x in batch for j in range(sample_size)]
         targets = [x[j] for x in batch for j in range(sample_size)]
