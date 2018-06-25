@@ -53,6 +53,9 @@ def main(
     hidden_size=0,
     num_epochs=0,
     learn_rate=0,
+    momentum=0,
+    lr_decay=0,
+    weight_decay=0,
     sample_rate=0,
     optimizer='',
     cbow=False,
@@ -97,7 +100,14 @@ def main(
     actual_batch_size = batch_size*n_gram_size if cbow else batch_size
     model = NGramLanguageModeler(vocab_size, embed_size, n_gram_size-1, actual_batch_size, hidden_size)
     model = model.to(device)
-    optimizer = optim.SGD(model.parameters(), lr=learn_rate)
+    optimizer_func: optim.Optimizer = None
+    if optimizer == 'sgd':
+        optimizer_func = optim.SGD(model.parameters(), lr=learn_rate, momentum=momentum, weight_decay=weight_decay)
+    if optimizer == 'ada':
+        optimizer_func = optim.Adagrad(model.parameters(), lr=learn_rate, lr_decay=lr_decay, weight_decay=weight_decay)
+    if optimizer == 'adam':
+        optimizer_func = optim.Adam(model.parameters(), lr=learn_rate, weight_decay=weight_decay)
+    assert optimizer_func, "%s is not a valid optimizer name" % optimizer
     for epoch in range(num_epochs):
         total_loss = 0
         batch_gen = (
@@ -113,7 +123,7 @@ def main(
             target_idx = torch.tensor(curr_targets, dtype=torch.long).to(device)
             loss = loss_function(log_probs, target_idx)
             loss.backward()
-            optimizer.step()
+            optimizer_func.step()
             step_loss = loss.cpu().item()
             total_loss += step_loss
             t_bar.set_postfix(loss=total_loss)
@@ -131,8 +141,11 @@ if __name__ == '__main__':
     parser.add('-hs', '--hidden-size', type=int)
     parser.add('-ne', '--num-epochs', type=int)
     parser.add('-lr', '--learn-rate', type=float)
+    parser.add('--momentum', type=float)
+    parser.add('--lr-decay', type=float)
+    parser.add('--weight-decay', type=float)
     parser.add('--sample-rate', type=float)
-    parser.add('-o', '--optimizer', type=str)
+    parser.add('-o', '--optimizer', type=str, choices=['sgd', 'ada','adam'])
     parser.add('--cbow', dest='cbow', action='store_true', default=False)
     parser.add('--min-df', type=float)
     parser.add('--max-df', type=float)
