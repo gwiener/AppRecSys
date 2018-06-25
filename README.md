@@ -90,7 +90,8 @@ and the eligible apps ids as the consequent arguments. For example
 python recommend.py 429775439 506627515 504720040 447553564 440045374 512939461
 ```
 will execute the example from the specifications, where 429775439 is the id
-of the installed app. 
+of the installed app. Notice that the code folder has to be in the env.
+`PYTHONPATH` for the local imports.
 
 ## Method
 
