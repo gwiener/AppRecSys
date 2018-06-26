@@ -3,7 +3,9 @@ import json
 import random
 import typing
 import pandas as pd
-from sys import argv, stderr
+import configargparse
+from os import path
+from sys import stderr
 from urllib import request
 
 
@@ -56,10 +58,21 @@ class Recommend(object):
 
 
 if __name__ == '__main__':
-    rec = Recommend('word_to_idx.pickle', 'embed.npy', 'apps.json.gz')
+    parser = configargparse.ArgumentParser(default_config_files=['recommend.conf'])
+    parser.add_argument('--emb-file', type=str)
+    parser.add_argument('--idx-file', type=str)
+    parser.add_argument('--cache-file', type=str)
+    parser.add_argument('-k', '--num-rand-eligible', type=int)
+    parser.add_argument('app', nargs='?')
+    parser.add_argument('eligible_apps', nargs='*')
+    args = parser.parse_args()
+    if not args.app and not (args.cache_file and path.isfile(args.cache_file)):
+        print("No app ids given and no cache file found, aborting", file=stderr)
+        exit(-1)
+    rec = Recommend(args.idx_file, args.emb_file, args.cache_file)
     cache = rec.cache
-    curr = argv[1] if len(argv) > 1 else random.choice(cache.index)
-    elig = argv[2:] if len(argv) > 2 else random.choices(cache.index, k=5)
+    curr = args.app if args.app else random.choice(cache.index)
+    elig = args.eligible_apps if args.eligible_apps else random.choices(cache.index, k=args.num_rand_eligible)
     res = rec.app_recommend(curr, elig)
     series = pd.Series(res)
     print(series.to_csv())
